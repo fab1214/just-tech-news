@@ -2,12 +2,12 @@ const router = require('express').Router();
 const { User } = require('../../models');
 
 //GET /api/users - similar to SELECT * FROM users;
-router.get('/', (req, res)=>{
+router.get('/', (req, res)=> {
     //Access our User model and run .findAll() method)
     User.findAll({
         attributes: { exclude: ['password'] }
     })
-      .then(dbUserData => res.json(dbUserData))
+    .then(dbUserData => res.json(dbUserData))
       //if server issue, send 500 status code
       .catch(err => {
           console.log(err);
@@ -53,12 +53,36 @@ router.post('/', (req, res)=> {
     });
 });
 
+//user login
+router.post('/login', (req, res)=> {
+    // expects {email: 'lernantino@gmail.com', password: 'password1234'}
+    User.findOne({
+        //find user with email entered
+        where: {
+            email: req.body.email
+        }
+    }).then(dbUserData => {
+        //if no user with email entered, send 400 message
+        if(!dbUserData){
+            res.status(400).json({message: 'No user with that email address exists'});
+            return;
+        }
+        //verify user
+        const validPassword =  dbUserData.checkPassword(req.body.password);
+        if(!validPassword){
+            res.status(400).json({ message: 'Incorrect password'});
+            return;
+        }
+        res.json({user: dbUserData, message: 'You are now logged in'});
+    })
+})
 //PUT /api/users/1 - UPDATE users SET username = "Lernantino", email = "lernantino@gmail.com", password = "newPassword1234"
-//                  WHERE id = 1;
+//                   WHERE id = 1;
 router.put('/:id', (req, res)=>{
     // expects {username: 'Lernantino', email: 'lernantino@gmail.com', password: 'password1234'}
     // if req.body has exact key/value pairs to match the model, you can just use `req.body` instead
     User.update(req.body, {
+        individualHooks: true,
         where: {
             id: req.params.id
         }
@@ -96,4 +120,4 @@ router.delete('/:id', (req, res)=>{
 
 });
 
-module.exports=router;
+module.exports = router;
