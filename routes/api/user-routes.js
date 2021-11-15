@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { User } = require('../../models');
+const { User, Post, Vote, Comment } = require('../../models');
 
 //GET /api/users - similar to SELECT * FROM users;
 router.get('/', (req, res)=> {
@@ -18,7 +18,30 @@ router.get('/', (req, res)=> {
 //GET /api/users/1 - similar to SELECT * FROM users WHERE id = 1
 router.get('/:id', (req, res)=> {
     User.findOne({
+        //exlcude showing password when retriving user data
     attributes: { exclude: ['password'] },
+    //include the Post id, title, url, and create data
+    include: [
+        {
+            model: Post,
+            attributes: ['id', 'title', 'post_url', 'created_at']
+        },
+        {
+            model: Comment,
+            attributes: ['id', 'comment_text', 'created_at'],
+            include: {
+                model: Post,
+                attributes: ['title']
+            }
+        },
+        //include the title of their voted posts, and their vote info
+        {
+            model: Post,
+            attributes: ['title'],
+            through: Vote,
+            as: 'voted_posts'
+        }
+    ],
     where: {
         id: req.params.id
     }
